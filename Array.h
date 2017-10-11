@@ -61,7 +61,6 @@ template <class T> Array<T>::Array( const Array<T> &init )
 
 template <class T> Array<T>::~Array()
 {
-//std::cout << *this <<std::endl;
 	if (ptr)
 		delete[] ptr; 
 }

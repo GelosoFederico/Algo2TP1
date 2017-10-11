@@ -298,8 +298,6 @@ int main(int argc, char * const argv[])
 		return 1;
 	}
 	
-cout << "a romper todo" << endl;
-cout << *ptr_points_tiberium << endl;
 	delete ptr_points_tiberium;
 	ifs.close();
 	pfs.close();
