@@ -24,7 +24,7 @@ class Nodo {
         Nodo* _father;
     public:
         Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father=NULL);
-        virtual ~Nodo() {}//de nuevo, habria que preguntar lo del destructor virtual porque no lo termine de entender
+        ~Nodo(); 
 	//Getters
         double get_breakpoint() ;
         char get_breakdimension();
@@ -63,6 +63,17 @@ Nodo::Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father){
 		delete points_left;
 		delete points_right;
 	}
+	else{
+		_branch_left=NULL;
+		_branch_right=NULL;
+	}
+}
+Nodo::~Nodo()
+{
+        if(_branch_left!=NULL)
+		delete _branch_left;
+        if(_branch_right!=NULL)
+		delete _branch_right;
 }
 double Nodo::get_breakpoint() {
 	return _breakpoint;
@@ -93,8 +104,15 @@ void Nodo::set_breakdimension(char bkd)
 }
 void Nodo::set_region()
 {
-	this->set_topright(find_max_min(this->get_points(),MAX));
-	this->set_botleft(find_max_min(this->get_points(),MIN));
+	Array <double>* ptr;
+
+	ptr = &find_max_min(this->get_points(),MAX);
+	this->set_topright(*ptr);
+	delete ptr;
+	ptr = &find_max_min(this->get_points(),MIN);
+	this->set_botleft(*ptr);
+	delete ptr;
+// find_max_min espera que el otro se encargue de la memoria. Una vez copiado el arreglo en el nodo, ya no necesita esa memoria
 }
 void Nodo::set_topright(Array <double> &v)
 {
@@ -131,14 +149,20 @@ void Nodo::set_branch_right(Nodo* &nodo) {
 	_branch_right = nodo;
 }
 
-class KDTree{
-	private:
-		Nodo* _root;
-	public:
-		KDTree(){_root=NULL;}	
-		KDTree(Nodo * nodo){_root = nodo;}
-		~KDTree(){delete _root;}	
-};
+KDTree::KDTree()
+{
+	_root = NULL;
+}
+
+KDTree::KDTree(Array <Array <double> > points)
+{
+	_root = new Nodo(points,0);
+}
+
+KDTree::~KDTree()
+{
+	delete _root;
+}
 
 int split(Array <Array <double> > & points, char dimension, double break_point, Array <Array <double> >*& arr_left,Array <Array <double> >*& arr_right)
 {
@@ -199,8 +223,25 @@ double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max fl
 	return top;
 }
 
+/*
 int main (void)
 {
+	Array < Array <double> > * ptr_array;
+	Array <double> * coordenada;
+	KDTree * ptr_jorge;
+
+	ptr_array = new Array< Array <double> >();
+	for(int i=0;i<100;++i){
+		coordenada = new Array<double>(2);
+		(*coordenada)[0] = i;
+		(*coordenada)[1] = i;
+		ptr_array->append(*coordenada);
+		delete coordenada;
+	}
+	ptr_jorge = new KDTree(*ptr_array);
+	delete ptr_jorge;
+	delete ptr_array;
 	
 	return 0;
 }
+*/

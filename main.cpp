@@ -14,6 +14,7 @@
 #include "Array.h"
 #include "main.h"
 #include "utils.h"
+#include "KDTree.h"
 
 using namespace std;
 
@@ -241,6 +242,7 @@ int load_points (int dimension, Array <Array <double> > & points_tiberium, istre
 
 int make_query (Array <Array <double> >& database, int dimension, istream * query_file, ostream * target_file)
 {
+//Esta funcion tiene que cambiar completamente para incorporar KDTree
 	int st,pos;
 	bool eof=false;
 	Array <double> current_array (dimension);
@@ -271,6 +273,7 @@ int main(int argc, char * const argv[])
 	cmdline cmdl(options);
 	int dimension;
 	Array <Array <double> > * ptr_points_tiberium;
+	KDTree * ptr_kdtree;
 
 	cmdl.parse(argc, argv);
 	if(read_points_dimension(dimension,points_stream)){
@@ -289,6 +292,8 @@ int main(int argc, char * const argv[])
 		cerr<<MSG_ERR_LOADING_POINTS<<endl;
 		return 1;
 	}
+	ptr_kdtree = new KDTree (*ptr_points_tiberium);
+	delete ptr_points_tiberium;
 	if(make_query(*ptr_points_tiberium,dimension,input_stream,output_stream)){
 		delete ptr_points_tiberium;
 		ifs.close();
@@ -298,7 +303,6 @@ int main(int argc, char * const argv[])
 		return 1;
 	}
 	
-	delete ptr_points_tiberium;
 	ifs.close();
 	pfs.close();
 	ofs.close();

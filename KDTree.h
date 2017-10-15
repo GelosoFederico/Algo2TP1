@@ -1,3 +1,5 @@
+#ifndef KDTREE_H
+#define KDTREE_H
 
 #include <iostream>
 
@@ -5,12 +7,25 @@
 #define MAX_NUM_LEAF 3
 #define MSG_ERROR_DIMENSIONS "Dimensiones distintas"
 
+class Nodo;
+
 typedef enum{
 	MAX=0,
 	MIN=1
 }flag_min_max;
 
+class KDTree{
+	private:
+		Nodo* _root;
+	public:
+		KDTree();
+		KDTree(Array <Array <double> > points);
+		~KDTree();
+};
+
 int split(Array <Array <double> > & points, char dimension, double break_point, Array <Array <double> >*& arr_left,Array <Array <double> >*& arr_right);
 double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max flag,int dimension);
 Array <double> &find_max_min(Array <Array <double> >& points,flag_min_max flag);
 double find_split_point(Array <Array <double> >& points,int bkd);
+
+#endif
