@@ -101,6 +101,25 @@ int print_coord_csv(Array <double>& v, ostream * ptr_iss)
 	return 1;
 }
 
+//calcula la distancia a cada subregion
+double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright)
+{
+    Array <double> comparator(2);
+    if(point[0]<botleft[0])
+        comparator[0]=botleft[0];
+    if(point[0]>topright[0])
+        comparator[0]=topright[0];
+    if(point[0]>=botleft[0]&&point[0]<=topright[0])
+        comparator[0]=point[0];
+    if(point[1]<botleft[1])
+        comparator[1]=botleft[1];
+    if(point[1]>topright[1])
+        comparator[1]=topright[1];
+    if(point[1]>=botleft[1]&&point[1]<=topright[1])
+        comparator[1]=point[1];
+    return getDistance(comparator,point);
+}
+
 double getDistance(Array <double> &coord1, Array <double> &coord2) 
 //devuelve el cuadrado de la distancia entre vectores de double coord1 y coord2
 {
