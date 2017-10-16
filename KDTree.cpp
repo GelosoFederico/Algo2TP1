@@ -1,9 +1,10 @@
 // Implementación del KDTree para TP1 de algo2.
-// TODO: funciones en el constructor de nodo, kdtree, tests
 
 #include <iostream>
+
 #include "Array.h"
 #include "KDTree.h"
+#include "utils.h"
 
 
 using namespace std;
@@ -23,6 +24,7 @@ class Nodo {
         Nodo* _branch_right;
         Nodo* _father;
     public:
+	friend class KDTree;
         Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father=NULL);
         ~Nodo(); 
 	//Getters
@@ -31,6 +33,14 @@ class Nodo {
         Array <double> get_topright();
         Array <double> get_botleft();
 	Array <Array <double> >& get_points();
+	Nodo* get_left_branch();
+	Nodo* get_right_branch();
+	Nodo* get_father();
+	Nodo* get_brother();
+
+	bool is_leaf();
+	bool has_points();
+	
 	//Setters
         void set_breakpoint(double );
         void set_breakdimension(char );
@@ -41,7 +51,11 @@ class Nodo {
 	void set_father(Nodo* &);
 	void set_branch_left(Nodo* &nodo);
 	void set_branch_right(Nodo* &nodo); 
+
+	Array <double>& find_min_distance(Array <double>&point, Array <double>& current_best,double distance=-1);
 };
+
+
 Nodo::Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father){
 	this->set_breakdimension(bkd);
 	this->set_points(Points);
@@ -104,15 +118,15 @@ void Nodo::set_breakdimension(char bkd)
 }
 void Nodo::set_region()
 {
-	Array <double>* ptr;
+	Array <double> v;
 
-	ptr = &find_max_min(this->get_points(),MAX);
-	this->set_topright(*ptr);
-	delete ptr;
-	ptr = &find_max_min(this->get_points(),MIN);
-	this->set_botleft(*ptr);
-	delete ptr;
-// find_max_min espera que el otro se encargue de la memoria. Una vez copiado el arreglo en el nodo, ya no necesita esa memoria
+	if(this->has_points() == false)
+		return ;
+
+	v = find_max_min(this->get_points(),MAX);
+	this->set_topright(v);
+	v = find_max_min(this->get_points(),MIN);
+	this->set_botleft(v);
 }
 void Nodo::set_topright(Array <double> &v)
 {
@@ -147,6 +161,45 @@ void Nodo::set_branch_left(Nodo* &nodo) {
 }
 void Nodo::set_branch_right(Nodo* &nodo) {
 	_branch_right = nodo;
+}
+
+Nodo* Nodo::get_left_branch()
+{
+	return _branch_left;
+}
+Nodo* Nodo::get_right_branch()
+{
+	return _branch_right;
+}
+Nodo* Nodo::get_father()
+{
+	return _father;
+}
+Nodo* Nodo::get_brother()
+{
+	if(_father!=NULL){
+		if(_father->_branch_left == this)
+			return _father->_branch_right;
+		if(_father->_branch_right == this)
+			return _father->_branch_left;
+	}
+	return NULL;
+}
+
+bool Nodo::is_leaf()
+{
+	if(_branch_left==NULL && _branch_right == NULL)
+		return true;
+	else
+		return false;
+}
+
+bool Nodo::has_points()
+{
+	if(this->get_points().getSize() == 0)
+		return false;
+	else
+		return true;
 }
 
 KDTree::KDTree()
@@ -190,17 +243,16 @@ double find_split_point(Array <Array <double> >& points,int bkd)
 	return (max+min)/2;
 }
 
-Array <double> &find_max_min(Array <Array <double> >& points,flag_min_max flag)
+Array <double> find_max_min(Array <Array <double> >& points,flag_min_max flag)
 {
 // Este es para topright y bottom. Hace el maximo de cada dimension
 // 
-	Array <double> * v;
+	Array <double>  v(NUM_DIMENSIONS);
 
-	v = new Array <double>(NUM_DIMENSIONS);
 	for(int i=0;i<NUM_DIMENSIONS;++i){
-		(*v)[i] = find_max_min_in_dimension(points,flag,i);
+		v[i] = find_max_min_in_dimension(points,flag,i);
 	}
-	return *v;
+	return v;
 	
 }
 double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max flag,int dimension)
@@ -223,6 +275,89 @@ double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max fl
 	return top;
 }
 
+Nodo* KDTree::find_closest_node(Array <double>& point)
+{
+	Nodo* ptr_actual_node;
+
+	ptr_actual_node = _root;
+	while(ptr_actual_node->_branch_left != NULL && ptr_actual_node->_branch_right != NULL){
+		if(point[ptr_actual_node->_breakdimension]<ptr_actual_node->_breakpoint){
+			ptr_actual_node = ptr_actual_node->_branch_left;
+		}else{
+			ptr_actual_node = ptr_actual_node->_branch_right;
+		}
+	}
+	return ptr_actual_node;
+}
+
+Array <double>& KDTree::find_min_distance(Array <double>& point)
+{
+	
+	return _root->find_min_distance(point,point);
+}
+
+Array <double>& Nodo::find_min_distance(Array <double>&point, Array <double>& current_best,double distance)
+{
+//Si distancia es -1, closest_point tiene cualquier valor
+	//Caso base: es una hoja
+	if(this->is_leaf() == true){
+		int pos = find_min_distance_linear(this->_tiberium_points,point);
+		if(distance < 0){
+			return (this->_tiberium_points)[pos];
+		}else{
+			if(distance < getDistance((this->_tiberium_points)[pos],point))
+				return current_best;
+			else
+				return (this->_tiberium_points)[pos];
+		}
+	}else{//Caso general: tiene hijos, si es la primera llamada entra al que caeria el punto, sino, mira si entra o no a las ramas segun sus zonas
+		if(distance<0){ //todavía no hizo ninguna búsqueda
+			if(point[this->_breakdimension]<this->_breakpoint){
+				//Voy a izq y luego a derecha
+				current_best = _branch_left->find_min_distance(point,current_best,distance);
+				distance = getDistance(point,current_best);
+				current_best = _branch_right->find_min_distance(point,current_best,distance);
+			}else{
+				current_best = _branch_right->find_min_distance(point,current_best,distance);
+				distance = getDistance(point,current_best);
+				current_best = _branch_left->find_min_distance(point,current_best,distance);
+			}
+				
+		}else{
+			if(distance > getRegionDistance(point,_branch_left->_botleft,_branch_left->_topright)){
+				current_best = _branch_left->find_min_distance(point,current_best,distance);
+				distance = getDistance(point,current_best);
+			}
+			if(distance > getRegionDistance(point,_branch_right->_botleft,_branch_right->_topright)){
+				current_best = _branch_right->find_min_distance(point,current_best,distance);
+				distance = getDistance(point,current_best);
+			}
+				
+	
+		}
+		return current_best;
+	}
+}
+
+//calcula la distancia a cada subregion
+double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright)
+{
+    Array <double> comparator(2);
+    if(point[0]<botleft[0])
+        comparator[0]=botleft[0];
+    if(point[0]>topright[0])
+        comparator[0]=topright[0];
+    if(point[0]>=botleft[0]&&point[0]<=topright[0])
+        comparator[0]=point[0];
+    if(point[1]<botleft[1])
+        comparator[1]=botleft[1];
+    if(point[1]>topright[1])
+        comparator[1]=topright[1];
+    if(point[1]>=botleft[1]&&point[1]<=topright[1])
+        comparator[1]=point[1];
+    return getDistance(comparator,point);
+}
+
 /*
 int main (void)
 {
@@ -234,13 +369,22 @@ int main (void)
 	for(int i=0;i<100;++i){
 		coordenada = new Array<double>(2);
 		(*coordenada)[0] = i;
-		(*coordenada)[1] = i;
+		(*coordenada)[1] = i/2;
 		ptr_array->append(*coordenada);
 		delete coordenada;
 	}
 	ptr_jorge = new KDTree(*ptr_array);
-	delete ptr_jorge;
 	delete ptr_array;
+
+	Array <double> coordenada2(2);
+	coordenada2[0]=8;
+	coordenada2[1]=3;
+	
+	Array <double> closest(2);
+	closest = ptr_jorge->find_min_distance(coordenada2);
+	cout<<closest<<endl;
+
+	delete ptr_jorge;
 	
 	return 0;
 }

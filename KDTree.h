@@ -17,15 +17,18 @@ typedef enum{
 class KDTree{
 	private:
 		Nodo* _root;
+		Nodo* find_closest_node(Array <double> &);
 	public:
 		KDTree();
 		KDTree(Array <Array <double> > points);
 		~KDTree();
+		Array <double>& find_min_distance(Array <double>&);
 };
 
 int split(Array <Array <double> > & points, char dimension, double break_point, Array <Array <double> >*& arr_left,Array <Array <double> >*& arr_right);
 double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max flag,int dimension);
-Array <double> &find_max_min(Array <Array <double> >& points,flag_min_max flag);
+Array <double> find_max_min(Array <Array <double> >& points,flag_min_max flag);
 double find_split_point(Array <Array <double> >& points,int bkd);
+double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright);
 
 #endif

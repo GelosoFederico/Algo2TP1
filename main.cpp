@@ -1,4 +1,4 @@
-// Main TP0 algo2
+// Main TP1 algo2
 //
 //
 
@@ -101,60 +101,7 @@ int print_coord_csv(Array <double>& v, ostream * ptr_iss)
 	return 1;
 }
 
-//calcula la distancia a cada subregion
-double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright)
-{
-    Array <double> comparator(2);
-    if(point[0]<botleft[0])
-        comparator[0]=botleft[0];
-    if(point[0]>topright[0])
-        comparator[0]=topright[0];
-    if(point[0]>=botleft[0]&&point[0]<=topright[0])
-        comparator[0]=point[0];
-    if(point[1]<botleft[1])
-        comparator[1]=botleft[1];
-    if(point[1]>topright[1])
-        comparator[1]=topright[1];
-    if(point[1]>=botleft[1]&&point[1]<=topright[1])
-        comparator[1]=point[1];
-    return getDistance(comparator,point);
-}
 
-double getDistance(Array <double> &coord1, Array <double> &coord2) 
-//devuelve el cuadrado de la distancia entre vectores de double coord1 y coord2
-{
-    size_t i;
-    double s=0;
-    if(coord1.getSize()==coord2.getSize())
-    {
-        for(i=0;i<coord1.getSize();i++)
-        {
-            s+=((coord1[i]-coord2[i])*(coord1[i]-coord2[i]));
-        }
-        return s;
-    }
-    else
-        cerr<<MSG_ERROR_DISTANCE_DIMENSION <<endl;
-    return -1;
-}
-
-int get_min_distance(Array < Array <double> >& database,Array <double> & query)
-{
-	int database_dimension, min_pos=0;
-	double min_distance,new_distance;
-
-	database_dimension= database.getSize(); 
-	min_distance = getDistance(database[0],query);
-	
-	for (int i=1; i< database_dimension;++i){
-		new_distance = getDistance(database[i],query);
-		if(new_distance < min_distance){
-			min_distance = new_distance;
-			min_pos = i;
-		}
-	}
-	return min_pos;
-}
 
 int parse_line_vector(int dimension, Array <double> & vector, istream * ptr_iss)
 {	
@@ -259,6 +206,7 @@ int load_points (int dimension, Array <Array <double> > & points_tiberium, istre
 	return 0;
 }
 
+/*
 int make_query (Array <Array <double> >& database, int dimension, istream * query_file, ostream * target_file)
 {
 //Esta funcion tiene que cambiar completamente para incorporar KDTree
@@ -285,6 +233,35 @@ int make_query (Array <Array <double> >& database, int dimension, istream * quer
 	}
 	return 0;
 }
+*/
+
+int make_query (KDTree& tree, int dimension, istream * query_file, ostream * target_file)
+{
+	Array <double> current_array (dimension);
+	Array <double> closest_array (dimension);
+	int st;
+	bool eof=false;
+	
+	if(!query_file||!target_file){
+		cerr << MSG_ERROR_NULL_POINTER << endl;
+		return 1;
+	}
+	while(!eof){
+		st = parse_line_vector(dimension, current_array, query_file);
+		if(st == -1)
+			eof = true;
+		if(st == 1){
+			//No hago nada
+		}
+		if(st == 0){
+			
+			closest_array = tree.find_min_distance(current_array);
+			print_coord_csv(closest_array,target_file);
+		}
+	}
+	return 0;
+	
+}
 
 
 int main(int argc, char * const argv[])
@@ -292,7 +269,7 @@ int main(int argc, char * const argv[])
 	cmdline cmdl(options);
 	int dimension;
 	Array <Array <double> > * ptr_points_tiberium;
-	KDTree * ptr_kdtree;
+	KDTree * ptr_kdtree_points;
 
 	cmdl.parse(argc, argv);
 	if(read_points_dimension(dimension,points_stream)){
@@ -303,6 +280,7 @@ int main(int argc, char * const argv[])
 		return 1;
 	}
 	ptr_points_tiberium = new Array <Array <double> > ();
+cout<< " Va a cargar los puntos" << endl;
 	if(load_points(dimension, *ptr_points_tiberium, points_stream)){
 		delete ptr_points_tiberium;
 		ifs.close();
@@ -311,9 +289,13 @@ int main(int argc, char * const argv[])
 		cerr<<MSG_ERR_LOADING_POINTS<<endl;
 		return 1;
 	}
-	ptr_kdtree = new KDTree (*ptr_points_tiberium);
+cout << "creating KDTree" << endl;
+cout << *ptr_points_tiberium;
+	ptr_kdtree_points = new KDTree (*ptr_points_tiberium);
+cout << "Deleting points" << endl;
 	delete ptr_points_tiberium;
-	if(make_query(*ptr_points_tiberium,dimension,input_stream,output_stream)){
+cout << "va a hacer el query" << endl;
+	if(make_query(*ptr_kdtree_points,dimension,input_stream,output_stream)){
 		delete ptr_points_tiberium;
 		ifs.close();
 		pfs.close();
@@ -321,7 +303,7 @@ int main(int argc, char * const argv[])
 		cerr<<MSG_ERROR_QUERY << endl;
 		return 1;
 	}
-	
+	delete ptr_kdtree_points;
 	ifs.close();
 	pfs.close();
 	ofs.close();
