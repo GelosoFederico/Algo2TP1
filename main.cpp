@@ -16,23 +16,28 @@
 #include "utils.h"
 #include "KDTree.h"
 
+
 using namespace std;
 
 static void opt_points (string const &arg);
 static void opt_input(string const &arg);
 static void opt_output(string const &arg);
+static void opt_unsafe(string const &arg);
+
 
 //========= GLOBAL VARS =========
 static option_t options[] = {
 	{1, "p", "points", "-", opt_points, OPT_MANDATORY},
 	{1, "i", "input", "-", opt_input, OPT_DEFAULT},
 	{1, "o", "output", "-", opt_output, OPT_DEFAULT},
+	{0, "u", "unsafe", NULL, opt_unsafe, OPT_DEFAULT},
 	{0, }
 };
 
 static istream *points_stream = 0;
 static istream *input_stream = 0;
 static ostream *output_stream = 0;
+static bool flag_unsafe = false;
 
 static fstream pfs;
 static fstream ifs;
@@ -84,6 +89,11 @@ static void opt_output(string const &arg)
 	}
 }
 
+static void opt_unsafe(string const &arg)
+{
+	flag_unsafe = true;
+}
+
 //========================================
 //====== Funciones con coordenadas ========
 
@@ -108,8 +118,6 @@ int parse_line_vector(int dimension, Array <double> & vector, istream * ptr_iss)
 // Leo una linea de ptr_iss, en csv, la parceo y la pongo en vector
 	double aux;
 	char ch;
-
-// TODO: ACEPTAR ENDL DE WIN Y MAC
 
 	if(NULL == ptr_iss){
 		cerr << MSG_ERROR_NULL_POINTER << endl;
@@ -177,7 +185,7 @@ int read_points_dimension(int &dimension, istream * ptr_iss)
 int load_points (int dimension, Array <Array <double> > & points_tiberium, istream * ptr_iss)
 {
 	bool eof=false;
-	int st;
+	int st,i=0;
 	Array <double> * ptr_current_array;
 
 	if(NULL == ptr_iss){
@@ -195,7 +203,8 @@ int load_points (int dimension, Array <Array <double> > & points_tiberium, istre
 			delete ptr_current_array;
 		}
 		if(st == 0){
-			points_tiberium.append(*ptr_current_array);	
+			if(flag_unsafe == true ||points_tiberium.linear_search(*ptr_current_array)==-1)
+				points_tiberium.append(*ptr_current_array);	
 			delete ptr_current_array;
 		}
 	}
@@ -206,40 +215,11 @@ int load_points (int dimension, Array <Array <double> > & points_tiberium, istre
 	return 0;
 }
 
-/*
-int make_query (Array <Array <double> >& database, int dimension, istream * query_file, ostream * target_file)
-{
-//Esta funcion tiene que cambiar completamente para incorporar KDTree
-	int st,pos;
-	bool eof=false;
-	Array <double> current_array (dimension);
-
-	if(!query_file||!target_file){
-		cerr << MSG_ERROR_NULL_POINTER << endl;
-		return 1;
-	}
-
-	while(!eof){
-		st = parse_line_vector(dimension, current_array, query_file);
-		if(st == -1)
-			eof = true;
-		if(st == 1){
-			//No hago nada
-		}
-		if(st == 0){
-			pos = get_min_distance(database, current_array);
-			print_coord_csv(database[pos],target_file);
-		}
-	}
-	return 0;
-}
-*/
-
 int make_query (KDTree& tree, int dimension, istream * query_file, ostream * target_file)
 {
 	Array <double> current_array (dimension);
 	Array <double> closest_array (dimension);
-	int st;
+	int st,i=0;
 	bool eof=false;
 	
 	if(!query_file||!target_file){
@@ -254,13 +234,11 @@ int make_query (KDTree& tree, int dimension, istream * query_file, ostream * tar
 			//No hago nada
 		}
 		if(st == 0){
-			
 			closest_array = tree.find_min_distance(current_array);
 			print_coord_csv(closest_array,target_file);
 		}
 	}
 	return 0;
-	
 }
 
 
@@ -280,7 +258,6 @@ int main(int argc, char * const argv[])
 		return 1;
 	}
 	ptr_points_tiberium = new Array <Array <double> > ();
-cout<< " Va a cargar los puntos" << endl;
 	if(load_points(dimension, *ptr_points_tiberium, points_stream)){
 		delete ptr_points_tiberium;
 		ifs.close();
@@ -289,14 +266,10 @@ cout<< " Va a cargar los puntos" << endl;
 		cerr<<MSG_ERR_LOADING_POINTS<<endl;
 		return 1;
 	}
-cout << "creating KDTree" << endl;
-cout << *ptr_points_tiberium;
 	ptr_kdtree_points = new KDTree (*ptr_points_tiberium);
-cout << "Deleting points" << endl;
 	delete ptr_points_tiberium;
-cout << "va a hacer el query" << endl;
 	if(make_query(*ptr_kdtree_points,dimension,input_stream,output_stream)){
-		delete ptr_points_tiberium;
+		delete ptr_kdtree_points;
 		ifs.close();
 		pfs.close();
 		ofs.close();

@@ -25,6 +25,7 @@ public:
 	bool 		operator!=( const Array<T> & ) const; 
 	T &		operator[ ]( int );
 	void		append(T&);
+	int 		linear_search(T& objective);
 
 private:
 	size_t alloc_size; 
@@ -147,7 +148,7 @@ template <class T> void Array<T>::resize(int new_size)
 template <class T> void Array<T>::append(T &new_thing)
 {
 	if(alloc_size == used_size){
-		this->resize(alloc_size+ARRAY_SIZE_CHOP);
+		this->resize(alloc_size*2);
 	}	
 	ptr[used_size] = new_thing;
 	used_size++;
@@ -162,4 +163,18 @@ std::ostream & operator<< (std::ostream& os,Array<T> & arr)
 	os << std::endl;
 	return os;
 }
+
+template <class T>
+int Array<T>::linear_search(T& objective)
+{
+//Devuelve la posición del objeto encontrado o -1 si no lo encontró
+	if(this->getSize()==0)
+		return -1;
+	for(int i=0;i<this->getSize();++i){
+		if((*this)[i] == objective)
+			return i;
+	}
+	return -1;
+}
+
 #endif
