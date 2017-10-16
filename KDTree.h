@@ -14,13 +14,20 @@ typedef enum{
 	MIN=1
 }flag_min_max;
 
+typedef enum{
+	MEDIAN,
+	HALF,
+	AVERAGE
+}heuristic_t;
+
 class KDTree{
 	private:
 		Nodo* _root;
 		Nodo* find_closest_node(Array <double> &);
-	public:
+		heuristic_t _heuristic;
 		KDTree();
-		KDTree(Array <Array <double> > points);
+	public:
+		KDTree(Array <Array <double> > points,heuristic_t heuristic=MEDIAN);
 		~KDTree();
 		Array <double>& find_min_distance(Array <double>&);
 };
@@ -28,7 +35,7 @@ class KDTree{
 int split(Array <Array <double> > & points, char dimension, double break_point, Array <Array <double> >*& arr_left,Array <Array <double> >*& arr_right);
 double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max flag,int dimension);
 Array <double> find_max_min(Array <Array <double> >& points,flag_min_max flag);
-double find_split_point(Array <Array <double> >& points,int bkd);
+double find_split_point(Array <Array <double> >& points,int bkd,heuristic_t heuristic);
 double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright);
 
 #endif

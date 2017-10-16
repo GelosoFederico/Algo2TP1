@@ -1,6 +1,5 @@
 // Main TP1 algo2
 //
-//
 
 #include <iostream>
 #include <string>
@@ -22,6 +21,7 @@ using namespace std;
 static void opt_points (string const &arg);
 static void opt_input(string const &arg);
 static void opt_output(string const &arg);
+static void opt_heuristic(string const &arg);
 static void opt_unsafe(string const &arg);
 
 
@@ -30,6 +30,7 @@ static option_t options[] = {
 	{1, "p", "points", "-", opt_points, OPT_MANDATORY},
 	{1, "i", "input", "-", opt_input, OPT_DEFAULT},
 	{1, "o", "output", "-", opt_output, OPT_DEFAULT},
+	{1, "s", "split", "-", opt_heuristic, OPT_DEFAULT},
 	{0, "u", "unsafe", NULL, opt_unsafe, OPT_DEFAULT},
 	{0, }
 };
@@ -185,7 +186,7 @@ int read_points_dimension(int &dimension, istream * ptr_iss)
 int load_points (int dimension, Array <Array <double> > & points_tiberium, istream * ptr_iss)
 {
 	bool eof=false;
-	int st,i=0;
+	int st;
 	Array <double> * ptr_current_array;
 
 	if(NULL == ptr_iss){
@@ -203,7 +204,7 @@ int load_points (int dimension, Array <Array <double> > & points_tiberium, istre
 			delete ptr_current_array;
 		}
 		if(st == 0){
-			if(flag_unsafe == true ||points_tiberium.linear_search(*ptr_current_array)==-1)
+			if(flag_unsafe ||points_tiberium.linear_search(*ptr_current_array)==-1)
 				points_tiberium.append(*ptr_current_array);	
 			delete ptr_current_array;
 		}
@@ -219,7 +220,7 @@ int make_query (KDTree& tree, int dimension, istream * query_file, ostream * tar
 {
 	Array <double> current_array (dimension);
 	Array <double> closest_array (dimension);
-	int st,i=0;
+	int st;
 	bool eof=false;
 	
 	if(!query_file||!target_file){

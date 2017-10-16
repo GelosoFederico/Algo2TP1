@@ -6,9 +6,9 @@ echo 2 dimensions
 ./DataGenerator -n $i -d 2 -o TestPoints -I
 ./DataGenerator -n $i -d 2 -o TestQuery
 START=$(date +%s%3N)
-./tp1 -p TestPoints -i TestQuery -o TestOut
+./tp1 -p TestPoints -i TestQuery -o TestOut -u
 FINISH=$(date +%s%3N)
-(( DURATION = FINISH - START ))
-printf 'Tardó %f milisegundos\n' "$DURATION"
+((duration=FINISH-START))
+printf 'Tardó %f milisegundos\n' "$duration"
 done
 exit 0

@@ -1,10 +1,12 @@
 // Implementación del KDTree para TP1 de algo2.
 
 #include <iostream>
+#include <ctime>
 
 #include "Array.h"
 #include "KDTree.h"
 #include "utils.h"
+
 
 
 using namespace std;
@@ -18,6 +20,7 @@ class Nodo {
 
         char _breakdimension;	//Dimensión por la que dividió
         double _breakpoint;	//Punto por el que corta
+	heuristic_t _heuristic;//Heurística seleccionada
         Array <Array <double> > _tiberium_points; // Puntos dentro de esta bounding box
 
         Nodo* _branch_left;
@@ -25,7 +28,7 @@ class Nodo {
         Nodo* _father;
     public:
 	friend class KDTree;
-        Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father=NULL);
+        Nodo(Array <Array <double> >& Points,char bkd,heuristic_t heuristic,Nodo* Father=NULL);
         ~Nodo(); 
 	//Getters
         double get_breakpoint() ;
@@ -37,13 +40,13 @@ class Nodo {
 	Nodo* get_right_branch();
 	Nodo* get_father();
 	Nodo* get_brother();
-
 	bool is_leaf();
 	bool has_points();
 	
 	//Setters
         void set_breakpoint(double );
         void set_breakdimension(char );
+	void set_heuristic(heuristic_t);
 	void set_region();
 	void set_topright(Array <double>& );
 	void set_botleft(Array <double>& );
@@ -56,7 +59,8 @@ class Nodo {
 };
 
 
-Nodo::Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father){
+Nodo::Nodo(Array <Array <double> >& Points,char bkd,heuristic_t heuristic,Nodo* Father){
+	this->set_heuristic(heuristic);
 	this->set_breakdimension(bkd);
 	this->set_points(Points);
 	this->set_father(Father);
@@ -64,7 +68,7 @@ Nodo::Nodo(Array <Array <double> >& Points,char bkd,Nodo* Father){
 		
 	//Ya cargo todo, pero tiene que ver si este será una hoja (menos de x puntos) o si tiene que separarse
 	if((this->get_points()).getSize()>MAX_NUM_LEAF){
-       		this->set_breakpoint(find_split_point(Points,bkd));
+       		this->set_breakpoint(find_split_point(Points,bkd,heuristic));
 		Array <Array <double> > * points_right;
 		Array <Array <double> > * points_left;
 		split(get_points(),get_breakdimension(),get_breakpoint(),points_left,points_right);
@@ -107,6 +111,10 @@ Array <double> Nodo::get_botleft()
 Array <Array <double> >& Nodo::get_points()
 {
 	return _tiberium_points;
+}
+void Nodo::set_heuristic(heuristic_t heuristic)
+{
+	_heuristic=heuristic;
 }
 void Nodo::set_breakpoint(double bkp)
 {
@@ -207,9 +215,10 @@ KDTree::KDTree()
 	_root = NULL;
 }
 
-KDTree::KDTree(Array <Array <double> > points)
+KDTree::KDTree(Array <Array <double> > points, heuristic_t heuristic)
 {
 	_root = new Nodo(points,0);
+	_heuristic = heuristic;
 }
 
 KDTree::~KDTree()
@@ -232,15 +241,27 @@ int split(Array <Array <double> > & points, char dimension, double break_point, 
 	return 0;
 } 
 
-double find_split_point(Array <Array <double> >& points,int bkd)
+double find_split_point(Array <Array <double> >& points,int bkd,heuristic_t heuristic)
 {
-// Como hacemos con la heurística? Le paso un puntero a funcion? O un tipo enumerativo y solo aca se saben las heuristicas (diccionario de punteros a funcion)
-// Impongo el punto del medio
 	double max, min;
-
-	max = find_max_min_in_dimension(points,MAX,bkd);
-	min = find_max_min_in_dimension(points,MIN,bkd);
-	return (max+min)/2;
+	switch(heuristic){
+		case MEDIAN:
+			
+		case HALF:
+			double max, min;
+			max = find_max_min_in_dimension(points,MAX,bkd);
+			min = find_max_min_in_dimension(points,MIN,bkd);
+			return (max+min)/2;
+		case AVERAGE:
+			Array <double> v1,v2,v3;
+			srand(time(NULL));
+			v1 = points[rand()%points.getSize()];
+			v2 = points[rand()%points.getSize()];
+			v3 = points[rand()%points.getSize()];
+			return (v1[bkd]+v2[bkd]+v3[bkd])/3;
+		default:
+			exit(1);
+			
 }
 
 Array <double> find_max_min(Array <Array <double> >& points,flag_min_max flag)
