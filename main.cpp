@@ -161,6 +161,72 @@ int parse_line_vector(int dimension, Array <double> & vector, istream * ptr_iss)
 	return 1;
 }
 
+//funciones internas de quickselect para aplicar la heuristica de la mediana
+void arrayswap(Array <double> &a, Array <double> &b)
+{
+    Array <double> aux;
+    aux=a;
+    a=b;
+    b=aux;
+}
+
+size_t quickpartition (Array <Array <double> > points, size_t dimension, size_t left, size_t right, size_t pivotindex)
+{
+    size_t i, storeindex=left;
+    double pivotvalue=points[pivotindex][dimension];
+    arrayswap(points[pivotindex],points[right]);
+    for(i=left;i<right;++i)
+    {
+        if(points[i][dimension]<pivotvalue)
+        {
+            arrayswap(points[storeindex],points[i]);
+            ++storeindex;
+        }
+    }
+    arrayswap(points[right],points[storeindex]);
+    return storeindex;
+}
+
+double quickselect(Array <Array <double> > points, char coord, size_t left, size_t right, size_t k)
+{
+    size_t i, pivotindex;
+    if(coord=='x')
+        i=0;
+    else if(coord=='y')
+        i=1;
+        else {cout<<"error en coordenada"<<endl; return 0;/**no me gusta nada que retorne 0, pero no me doy cuenta que conviene*/}
+    if (left==right)
+        return points[left][i];
+    pivotindex= rand()%(right-left+1)+left;//criterio para elegir un pivote aleatorio, esto se puede cambiar tranquilamente
+    pivotindex= quickpartition(points, i,left, right, pivotindex);
+    if (k=pivotindex)
+        return points[k][i];
+    else if (k<pivotindex)
+        return quickselect(points, coord,left, pivotindex-1, k);
+    else return quickselect(points, coord, pivotindex+1, right, k);
+}
+
+//funcion para aplicar heuristica del promedio
+double promedio(Array <Array <double> > points, char coord)
+{
+    double aux; size_t i;
+    for(i=0;i<3;++i)
+        aux+=rand()%points.getSize();
+    return aux/3;
+}
+
+//funcion que elige dependiendo el modo y aplica la heuristica pedida (MEDIANA MITAD y PROMEDIO son defines en main.h pero me parece que lo vas a encontrar desprolijo)
+double heuristica(Array <Array <double> > points, char coord, size_t modo)
+{
+    if(modo==MEDIANA)
+        return quickselect(points, coord, 0, points.getSize(), points.getSize()/2);
+    if(modo==MITAD)
+        return find_split_point(points,coord);//habria que cambiarle el nombre a esta funcion?
+    if(modo==PROMEDIO)
+        return promedio(points,coord);
+}
+
+
 //=== Funciones directas del programa ===
 
 int read_points_dimension(int &dimension, istream * ptr_iss)
