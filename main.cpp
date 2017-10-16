@@ -209,10 +209,11 @@ double quickselect(Array <Array <double> > points, char coord, size_t left, size
 //funcion para aplicar heuristica del promedio
 double promedio(Array <Array <double> > points, char coord)
 {
-    double aux; size_t i;
-    for(i=0;i<3;++i)
-        aux+=rand()%points.getSize();
-    return aux/3;
+	double aux; size_t i;
+	srand(time(NULL));
+	for(i=0;i<3;++i)
+	    aux+=rand()%points.getSize();
+	return aux/3;
 }
 
 //funcion que elige dependiendo el modo y aplica la heuristica pedida (MEDIANA MITAD y PROMEDIO son defines en main.h pero me parece que lo vas a encontrar desprolijo)
