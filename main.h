@@ -13,6 +13,7 @@
 #define MSG_ERROR_NULL_POINTER "Error puntero nulo"
 #define MSG_ERROR_QUERY "Error en el query"
 #define MSG_ERROR_NO_DATA "Error: el archivo de coordenadas no contiene coordenadas válidas" 
+#define MSG_ERROR_HEURISTIC_SELECTED "Error: se eligió una heurística no admitida. Se adoptó por defecto la mediana"
 
 #define POINTS_STARTING_SIZE 1
 #define CSV_DELIMITER ' '

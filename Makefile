@@ -33,9 +33,12 @@ runtest:
 	./TEST.sh
 
 BasicTest:
-	./tp1 -p TestEntrada -i TestConsultas -o TestSalida
+	./tp1 -p TestEntrada -i TestConsultas  -s promedio
 	sleep 1
-	valgrind --leak-check=yes ./tp1 -p TestEntrada -i TestConsultas -o TestSalida
+	valgrind --leak-check=yes ./tp1 -p TestEntrada -i TestConsultas -o TestSalida -s mitad
+
+Debug:
+	gdb --args tp1 -p TestEntrada -i TestConsultas -o - -s promedio
 
 clean:
 	$(RM) *.o 

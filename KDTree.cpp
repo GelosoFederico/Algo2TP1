@@ -74,8 +74,8 @@ Nodo::Nodo(Array <Array <double> >& Points,char bkd,heuristic_t heuristic,Nodo* 
 		split(get_points(),get_breakdimension(),get_breakpoint(),points_left,points_right);
 		Nodo * nodo_left;
 		Nodo * nodo_right;
-		nodo_left = new Nodo(*points_left,(bkd+1)%NUM_DIMENSIONS,this);
-		nodo_right =new Nodo(*points_right,(bkd+1)%NUM_DIMENSIONS,this);
+		nodo_left = new Nodo(*points_left,(bkd+1)%NUM_DIMENSIONS,_heuristic,this);
+		nodo_right =new Nodo(*points_right,(bkd+1)%NUM_DIMENSIONS,_heuristic,this);
 		this->set_branch_left(nodo_left);
 		this->set_branch_right(nodo_right);
 		delete points_left;
@@ -217,7 +217,7 @@ KDTree::KDTree()
 
 KDTree::KDTree(Array <Array <double> > points, heuristic_t heuristic)
 {
-	_root = new Nodo(points,0);
+	_root = new Nodo(points,0,heuristic);
 	_heuristic = heuristic;
 }
 
@@ -230,7 +230,7 @@ int split(Array <Array <double> > & points, char dimension, double break_point, 
 {
 	arr_left = new Array< Array< double> >();
 	arr_right = new Array< Array< double> >();
-	for (int i=0;i<points.getSize();++i){
+	for (size_t i=0;i<points.getSize();++i){
 		if((points[i])[(int)dimension] < break_point){
 			arr_left->append(points[i]);
 		}
@@ -241,36 +241,26 @@ int split(Array <Array <double> > & points, char dimension, double break_point, 
 	return 0;
 } 
 
-double find_split_point(Array <Array <double> >& points,int bkd,heuristic_t heuristic)
+double find_split_point(Array <Array <double> >& points,char bkd,heuristic_t heuristic)
 {
-	double max, min;
 	switch(heuristic){
 		case MEDIAN:
-			
+        		return quickselect(points, bkd, 0, points.getSize()-1, points.getSize()/2);
 		case HALF:
-			double max, min;
-			max = find_max_min_in_dimension(points,MAX,bkd);
-			min = find_max_min_in_dimension(points,MIN,bkd);
-			return (max+min)/2;
+			return find_half(points,bkd);
 		case AVERAGE:
-			Array <double> v1,v2,v3;
-			srand(time(NULL));
-			v1 = points[rand()%points.getSize()];
-			v2 = points[rand()%points.getSize()];
-			v3 = points[rand()%points.getSize()];
-			return (v1[bkd]+v2[bkd]+v3[bkd])/3;
+			return rnd_average(points,bkd);
 		default:
 			exit(1);
-			
+	}	
 }
 
 Array <double> find_max_min(Array <Array <double> >& points,flag_min_max flag)
 {
 // Este es para topright y bottom. Hace el maximo de cada dimension
-// 
 	Array <double>  v(NUM_DIMENSIONS);
 
-	for(int i=0;i<NUM_DIMENSIONS;++i){
+	for(size_t i=0;i<NUM_DIMENSIONS;++i){
 		v[i] = find_max_min_in_dimension(points,flag,i);
 	}
 	return v;
@@ -282,13 +272,13 @@ double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max fl
 
 	top = (points[0])[dimension];
 	if(flag == MIN){
-		for(int i =1; i<points.getSize();++i){
+		for(size_t i =1; i<points.getSize();++i){
 			if((points[i])[dimension]<top)
 				top = (points[i])[dimension];
 		}
 	}
 	if(flag == MAX){
-		for(int i =1; i<points.getSize();++i){
+		for(size_t i =1; i<points.getSize();++i){
 			if((points[i])[dimension]>top)
 				top = (points[i])[dimension];
 		}
@@ -319,6 +309,7 @@ Array <double>& KDTree::find_min_distance(Array <double>& point)
 
 Array <double>& Nodo::find_min_distance(Array <double>&point, Array <double>& current_best,double distance)
 {
+//distance por defecto es -1
 //Si distancia es -1, closest_point tiene cualquier valor
 	//Caso base: es una hoja
 	if(this->is_leaf() == true){
@@ -379,34 +370,69 @@ double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <
     return getDistance(comparator,point);
 }
 
-/*
-int main (void)
+// ======= Funciones para heurísticas =======
+// ==========================================
+
+//funciones internas de quickselect para aplicar la heuristica de la mediana
+void arrayswap(Array <double> &a, Array <double> &b)
 {
-	Array < Array <double> > * ptr_array;
-	Array <double> * coordenada;
-	KDTree * ptr_jorge;
-
-	ptr_array = new Array< Array <double> >();
-	for(int i=0;i<100;++i){
-		coordenada = new Array<double>(2);
-		(*coordenada)[0] = i;
-		(*coordenada)[1] = i/2;
-		ptr_array->append(*coordenada);
-		delete coordenada;
-	}
-	ptr_jorge = new KDTree(*ptr_array);
-	delete ptr_array;
-
-	Array <double> coordenada2(2);
-	coordenada2[0]=8;
-	coordenada2[1]=3;
-	
-	Array <double> closest(2);
-	closest = ptr_jorge->find_min_distance(coordenada2);
-	cout<<closest<<endl;
-
-	delete ptr_jorge;
-	
-	return 0;
+    Array <double> aux;
+    aux=a;
+    a=b;
+    b=aux;
 }
-*/
+
+size_t quickpartition (Array <Array <double> >& points, size_t dimension, size_t left, size_t right, size_t pivotindex)
+{
+    size_t i, storeindex=left;
+    double pivotvalue=(points[pivotindex])[dimension];
+
+    arrayswap(points[pivotindex],points[right]);
+    for(i=left;i<right;++i)
+    {
+        if((points[i])[dimension]<pivotvalue)
+        {
+            arrayswap(points[storeindex],points[i]);
+            ++storeindex;
+        }
+    }
+    arrayswap(points[right],points[storeindex]);
+    return storeindex;
+}
+
+double quickselect(Array <Array <double> >& points, char coord, size_t left, size_t right, size_t k)
+{
+    size_t i, pivotindex;
+
+    i = coord;
+
+    if (left==right)	//Caso base
+        return points[left][i];
+    //Caso general
+    srand(time(NULL));
+    pivotindex= (rand()%(right-left))+left;//criterio para elegir un pivote aleatorio, esto se puede cambiar tranquilamente
+    pivotindex= quickpartition(points, i,left, right, pivotindex);
+    if (k==pivotindex)
+        return (points[k])[i];
+    else if (k<pivotindex)
+        return quickselect(points, coord,left, pivotindex-1, k);
+    else return quickselect(points, coord, pivotindex+1, right, k);
+}
+
+//funcion para aplicar heuristica del promedio
+double rnd_average(Array <Array <double> >& points, char coord)
+{
+	double aux=0; size_t i;
+	srand(time(NULL));
+	for(i=0;i<3;++i)
+	    aux+=(points[rand()%points.getSize()])[coord];
+	return aux/3;
+}
+
+double find_half(Array< Array <double> > & points, char bkd)
+{
+	double max, min;
+	max = find_max_min_in_dimension(points,MAX,bkd);
+	min = find_max_min_in_dimension(points,MIN,bkd);
+	return (max+min)/2;
+}
