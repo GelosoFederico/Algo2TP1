@@ -40,8 +40,10 @@ class Nodo {
 	Nodo* get_right_branch();
 	Nodo* get_father();
 	Nodo* get_brother();
+	double get_region_distance(Array <double> &);
 	bool is_leaf();
 	bool has_points();
+	bool is_empty_leaf();
 	
 	//Setters
         void set_breakpoint(double );
@@ -55,11 +57,13 @@ class Nodo {
 	void set_branch_left(Nodo* &nodo);
 	void set_branch_right(Nodo* &nodo); 
 
-	Array <double>& find_min_distance(Array <double>&point, Array <double>& current_best,double distance=-1);
+	Array <double> find_min_distance(Array <double>&point, Array <double>& current_best,double &distance);
+	Array <double> find_min_distance_leaf(Array <double> &,double & );
 };
 
 
 Nodo::Nodo(Array <Array <double> >& Points,char bkd,heuristic_t heuristic,Nodo* Father){
+
 	this->set_heuristic(heuristic);
 	this->set_breakdimension(bkd);
 	this->set_points(Points);
@@ -80,6 +84,8 @@ Nodo::Nodo(Array <Array <double> >& Points,char bkd,heuristic_t heuristic,Nodo* 
 		this->set_branch_right(nodo_right);
 		delete points_left;
 		delete points_right;
+		Array < Array <double > > empty_array;
+		this->set_points(empty_array);//Dado que este no es una hoja, sus puntos serán vacíos
 	}
 	else{
 		_branch_left=NULL;
@@ -193,7 +199,6 @@ Nodo* Nodo::get_brother()
 	}
 	return NULL;
 }
-
 bool Nodo::is_leaf()
 {
 	if(_branch_left==NULL && _branch_right == NULL)
@@ -201,7 +206,6 @@ bool Nodo::is_leaf()
 	else
 		return false;
 }
-
 bool Nodo::has_points()
 {
 	if(this->get_points().getSize() == 0)
@@ -210,20 +214,113 @@ bool Nodo::has_points()
 		return true;
 }
 
+bool Nodo::is_empty_leaf()
+{
+	if(this->is_leaf() && !this->has_points())
+		return true;
+	else
+		return false;
+}
+double Nodo::get_region_distance(Array <double> &point)
+{
+    Array <double> comparator(2);
+
+    if(point[0]<_botleft[0])
+        comparator[0]=_botleft[0];
+    if(point[0]>_topright[0])
+        comparator[0]=_topright[0];
+    if(point[0]>=_botleft[0]&&point[0]<=_topright[0])
+        comparator[0]=point[0];
+    if(point[1]<_botleft[1])
+        comparator[1]=_botleft[1];
+    if(point[1]>_topright[1])
+        comparator[1]=_topright[1];
+    if(point[1]>=_botleft[1]&&point[1]<=_topright[1])
+        comparator[1]=point[1];
+    return getDistance(comparator,point);
+}
+Array <double> Nodo::find_min_distance_leaf(Array <double> &point,double & distance_found)
+{
+//Devuelve también la distancia encontrada por argumento
+	int pos;
+
+	if(!this->is_leaf())
+		exit(1);
+	pos = find_min_distance_linear(_tiberium_points,point);
+	distance_found = getDistance(_tiberium_points[pos],point);
+	return _tiberium_points[pos];
+}
+
+Array <double> Nodo::find_min_distance(Array <double>&point, Array <double>& current_best,double & distance)
+{
+//Esta función supone que ya se hizo una aproximación y que desde ahora se busca si los siguientes nodos pueden mejorar esa aproximación
+//Revisa si puede haber puntos mejores en esta región, y si es así busca más adentro
+//Por valor devuelve el mejor, incluyendo si el mejor es el que era el mejor antes de llamarla
+//También devuelve la distancia del punto al mejor actual por argumento
+	if(this->is_empty_leaf())
+		return current_best;
+	if(distance < this->get_region_distance(point))
+		return current_best;
+
+	if(this->is_leaf()){
+		double new_distance;
+		Array <double> new_point;
+		new_point = this->find_min_distance_leaf(point,new_distance);
+		if(new_distance < distance){
+			distance = new_distance;
+			return new_point;
+		}
+		else
+			return current_best;
+	}
+	current_best = _branch_left->find_min_distance(point,current_best,distance);
+	return _branch_right->find_min_distance(point,current_best,distance);
+}
+
 KDTree::KDTree()
 {
 	_root = NULL;
 }
-
-KDTree::KDTree(Array <Array <double> > points, heuristic_t heuristic)
+KDTree::KDTree(Array <Array <double> >& points, heuristic_t heuristic)
 {
 	_root = new Nodo(points,0,heuristic);
 	_heuristic = heuristic;
 }
-
 KDTree::~KDTree()
 {
 	delete _root;
+}
+
+Nodo* KDTree::find_closest_node(Array <double>& point)
+{
+	Nodo* ptr_actual_node;
+
+	ptr_actual_node = _root;
+	while(!ptr_actual_node->is_leaf() ){
+		if(point[ptr_actual_node->_breakdimension]<ptr_actual_node->_breakpoint){
+			ptr_actual_node = ptr_actual_node->_branch_left;
+		}else{
+			ptr_actual_node = ptr_actual_node->_branch_right;
+		}
+		if(ptr_actual_node->is_empty_leaf()) // Evita hojas vacías
+			ptr_actual_node = ptr_actual_node->get_brother();
+	}
+	return ptr_actual_node;
+}
+
+Array <double> KDTree::find_min_distance(Array <double>& point)
+{
+	Nodo* ptr_actual_node;
+	double distance;
+	Array <double> current_best;
+
+	ptr_actual_node = this-> find_closest_node(point);
+	current_best = ptr_actual_node->find_min_distance_leaf(point,distance);
+	while(ptr_actual_node->get_father()!=NULL){
+		current_best = ptr_actual_node->get_brother()->find_min_distance(point,current_best,distance);	
+		ptr_actual_node = ptr_actual_node->get_father();
+	}
+	return current_best;
 }
 
 int split(Array <Array <double> > & points, char dimension, double break_point, Array <Array <double> >*& arr_left,Array <Array <double> >*& arr_right)
@@ -286,89 +383,6 @@ double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max fl
 	return top;
 }
 
-Nodo* KDTree::find_closest_node(Array <double>& point)
-{
-	Nodo* ptr_actual_node;
-
-	ptr_actual_node = _root;
-	while(ptr_actual_node->_branch_left != NULL && ptr_actual_node->_branch_right != NULL){
-		if(point[ptr_actual_node->_breakdimension]<ptr_actual_node->_breakpoint){
-			ptr_actual_node = ptr_actual_node->_branch_left;
-		}else{
-			ptr_actual_node = ptr_actual_node->_branch_right;
-		}
-	}
-	return ptr_actual_node;
-}
-
-Array <double>& KDTree::find_min_distance(Array <double>& point)
-{
-	
-	return _root->find_min_distance(point,point);
-}
-
-Array <double>& Nodo::find_min_distance(Array <double>&point, Array <double>& current_best,double distance)
-{
-//distance por defecto es -1
-//Si distancia es -1, closest_point tiene cualquier valor
-	//Caso base: es una hoja
-	if(this->is_leaf() == true){
-		int pos = find_min_distance_linear(this->_tiberium_points,point);
-		if(distance < 0){
-			return (this->_tiberium_points)[pos];
-		}else{
-			if(distance < getDistance((this->_tiberium_points)[pos],point))
-				return current_best;
-			else
-				return (this->_tiberium_points)[pos];
-		}
-	}else{//Caso general: tiene hijos, si es la primera llamada entra al que caeria el punto, sino, mira si entra o no a las ramas segun sus zonas
-		if(distance<0){ //todavía no hizo ninguna búsqueda
-			if(point[this->_breakdimension]<this->_breakpoint){
-				//Voy a izq y luego a derecha
-				current_best = _branch_left->find_min_distance(point,current_best,distance);
-				distance = getDistance(point,current_best);
-				current_best = _branch_right->find_min_distance(point,current_best,distance);
-			}else{
-				current_best = _branch_right->find_min_distance(point,current_best,distance);
-				distance = getDistance(point,current_best);
-				current_best = _branch_left->find_min_distance(point,current_best,distance);
-			}
-				
-		}else{
-			if(distance > getRegionDistance(point,_branch_left->_botleft,_branch_left->_topright)){
-				current_best = _branch_left->find_min_distance(point,current_best,distance);
-				distance = getDistance(point,current_best);
-			}
-			if(distance > getRegionDistance(point,_branch_right->_botleft,_branch_right->_topright)){
-				current_best = _branch_right->find_min_distance(point,current_best,distance);
-				distance = getDistance(point,current_best);
-			}
-				
-	
-		}
-		return current_best;
-	}
-}
-
-//calcula la distancia a cada subregion
-double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright)
-{
-    Array <double> comparator(2);
-    if(point[0]<botleft[0])
-        comparator[0]=botleft[0];
-    if(point[0]>topright[0])
-        comparator[0]=topright[0];
-    if(point[0]>=botleft[0]&&point[0]<=topright[0])
-        comparator[0]=point[0];
-    if(point[1]<botleft[1])
-        comparator[1]=botleft[1];
-    if(point[1]>topright[1])
-        comparator[1]=topright[1];
-    if(point[1]>=botleft[1]&&point[1]<=topright[1])
-        comparator[1]=point[1];
-    return getDistance(comparator,point);
-}
 
 // ======= Funciones para heurísticas =======
 // ==========================================

@@ -27,16 +27,15 @@ class KDTree{
 		heuristic_t _heuristic;
 		KDTree();
 	public:
-		KDTree(Array <Array <double> > points,heuristic_t heuristic=MEDIAN);
+		KDTree(Array <Array <double> >& points,heuristic_t heuristic=MEDIAN);
 		~KDTree();
-		Array <double>& find_min_distance(Array <double>&);
+		Array <double> find_min_distance(Array <double>&);
 };
 
 int split(Array <Array <double> > & points, char dimension, double break_point, Array <Array <double> >*& arr_left,Array <Array <double> >*& arr_right);
 double find_max_min_in_dimension(Array <Array <double> >& points,flag_min_max flag,int dimension);
 Array <double> find_max_min(Array <Array <double> >& points,flag_min_max flag);
 double find_split_point(Array <Array <double> >& points,char bkd,heuristic_t heuristic);
-double getRegionDistance(Array <double> &point, Array <double> &botleft, Array <double> &topright);
 
 double find_half(Array< Array <double> > & points, char bkd);
 double rnd_average(Array <Array <double> >& points, char coord);
