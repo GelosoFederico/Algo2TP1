@@ -436,11 +436,14 @@ double quickselect(Array <Array <double> >& points, char coord, size_t left, siz
 //funcion para aplicar heuristica del promedio
 double rnd_average(Array <Array <double> >& points, char coord)
 {
-	double aux=0; size_t i;
+	size_t v1,v2,v3;
+
 	srand(time(NULL));
-	for(i=0;i<3;++i)
-	    aux+=(points[rand()%points.getSize()])[coord];
-	return aux/3;
+	v1 = rand()%points.getSize();
+	while((v2 = rand()%points.getSize()) == v1);
+	while((v3 = rand()%points.getSize()) == v2 || v3 == v1);
+
+	return (points[v1][coord] + points[v2][coord] + points[v3][coord] )/3;
 }
 
 double find_half(Array< Array <double> > & points, char bkd)
