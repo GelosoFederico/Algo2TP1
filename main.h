@@ -5,6 +5,7 @@
 
 #define MSG_ERR_OPEN_FILE "Error al abrir el archivo "
 #define MSG_ERR_FIND_DIMENSION "Error al leer la dimension"
+#define MSG_ERR_DIMENSION_NOT_WORKING "Error: esta versión no están implementada para dimensiones distintas de 2"
 #define MSG_ERROR_LINE "Error al leer la linea"
 #define MSG_ERROR_DELIMITER "Error al buscar el delimitador"
 #define MSG_ERROR_CALL_DIMENSION "Error en la llamada, las dimensiones no son correctas"

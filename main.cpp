@@ -274,6 +274,13 @@ int main(int argc, char * const argv[])
 		cerr<<MSG_ERR_FIND_DIMENSION<<endl;
 		return 1;
 	}
+	if(dimension != 2){
+		ifs.close();
+		pfs.close();
+		ofs.close();
+		cerr<<MSG_ERR_DIMENSION_NOT_WORKING<<endl;
+		return 1;
+	}
 	ptr_points_tiberium = new Array <Array <double> > ();
 	if(load_points(dimension, *ptr_points_tiberium, points_stream)){
 		delete ptr_points_tiberium;
