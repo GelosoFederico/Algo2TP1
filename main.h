@@ -19,9 +19,6 @@
 #define POINTS_STARTING_SIZE 1
 #define CSV_DELIMITER ' '
 #define CSV_DELIMITER2 '\t'
-#define MODO_MEDIANA 0
-#define MODO_MITAD 1
-#define MODO_PROMEDIO 2
 
 
 // Prototipos
